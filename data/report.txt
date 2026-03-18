@@ -1,0 +1,83 @@
+Personal Information Report
+
+Name: Richard
+Age: 35
+City: Vero Beach
+
+--------------------
+Name: Dylan
+Age: 26
+City: Flossmoor
+
+--------------------
+Name: Charles
+Age: 22
+City: Glen Ellyn
+
+--------------------
+Name: Lee
+Age: 22
+City: Dallas
+
+--------------------
+Name: Jaisal
+Age: 23
+City: Morton Grove
+
+--------------------
+Name: Tim
+Age: 25
+City: West Dundee
+
+--------------------
+Name: Ben
+Age: 23
+City: Atkinson
+
+--------------------
+Name: Joey
+Age: 23
+City: Lasalle
+
+--------------------
+Name: Isabelle
+Age: 22
+City: Long Grove
+
+--------------------
+Name: Dio
+Age: 24
+City: London
+
+--------------------
+Name: Lucas
+Age: 23
+City: Lindenhurst
+
+--------------------
+Name: Alec
+Age: 31
+City: Des Plaines
+
+--------------------
+Name: Magan
+Age: 22
+City: Vernon Hills
+
+--------------------
+Name: Danielle
+Age: 22
+City: Plainfields
+
+--------------------
+Name: Andy
+Age: 24
+City: Darien
+
+--------------------
+Name: Andrew
+Age: 22
+City: East Brunswick
+
+--------------------
+Number of records: 16
