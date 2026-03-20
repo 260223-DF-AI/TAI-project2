@@ -1,4 +1,4 @@
 from google.cloud import storage
 
-storage_client = storage.Client()
-print(str(storage_client))
+class StorageService:
+    storage_client: storage.Client = storage.Client()
