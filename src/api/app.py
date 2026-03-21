@@ -20,7 +20,7 @@ import pandas as pd
 from fastapi import FastAPI
 from pathlib import Path
 
-from util.file_reader import do_everything
+from util.file_reader import do_everything, load_data
 
 app = FastAPI()
 
@@ -34,8 +34,10 @@ def get_root():
 @app.post("/")
 def post_root():
     
-    data_folder = Path("../../data")
+    data_folder = Path(__file__).resolve().parent.parent.parent / "data"
     files = [f for f in data_folder.iterdir() if f.is_file() and (f.name.endswith(".csv"))]
+
+    # return files
 
     dfs = []
     invalid_df = []
@@ -43,8 +45,9 @@ def post_root():
     # sort through each file and validate
     for file in files:
         df, invalid = do_everything(file)
+        # df = load_data(file)
         dfs.append(df)
-        invalid_df(invalid)
+        invalid_df.append(invalid)
 
     # combine all dataframes
     df = pd.concat(dfs)
@@ -52,5 +55,5 @@ def post_root():
     # convert to parquet file
     df.to_parquet("new_data/file.parquet", engine = 'pyarrow')
 
-    #returns list of files
-    return files
+    #returns list of files"""
+    

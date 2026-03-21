@@ -6,10 +6,10 @@ def load_data(filepath):
     Creates a DataFrame object from the given file, cleans it, then returns it
     """
     df = pd.DataFrame()
-    dotIndex = filepath.rfind('.')
+    # dotIndex = filepath.rfind('.')
     try:
-        if(filepath[dotIndex + 1:].lower() == 'csv'):
-            df = pd.read_csv(filepath)
+        # if(filepath[dotIndex + 1:].lower() == 'csv'):
+        df = pd.read_csv(filepath)
         # else:
             # raise WrongFileType (create this exception later)
     except FileNotFoundError:
