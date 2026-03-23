@@ -50,7 +50,15 @@ def add_to_storage(input_data_path):
     
     # need to make this, especially the chunk_size more dynamic in the future
     # need checksum eventually
+    # Stream buffer to cap RAM usage it is allowed
     blob.upload_from_filename(filename=input_data_path)
 
-filepath = input("Enter the path to the file you want to upload data from: ")
-add_to_storage(filepath)
+def delete_blob(bucket: storage.Bucket, blob_name: str):
+    blob = check_blob_existence(bucket, blob_name)
+    if(blob is not None):
+        blob.delete()
+
+def delete_bucket(bucket_name: str):
+    bucket = check_bucket_existence(bucket_name)
+    if(bucket is not None):
+        bucket.delete(force=True)
