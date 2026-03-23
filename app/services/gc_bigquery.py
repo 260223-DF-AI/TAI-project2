@@ -1,4 +1,4 @@
 from google.cloud import bigquery
+from env_vars import project_id
 
-class BigqueryService:
-    query_client: bigquery.Client = bigquery.Client()
+query_client: bigquery.Client = bigquery.Client(project=project_id)
