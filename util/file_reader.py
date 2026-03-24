@@ -66,6 +66,6 @@ def clean(df):
 
 def do_everything(filepath):
     df = load_data(filepath)
-    valid, invalid = validate(df, 100000)
-    clean(valid)
-    return valid, invalid
+    #valid, invalid = validate(df, 100000)
+    df = clean(df)
+    return df
