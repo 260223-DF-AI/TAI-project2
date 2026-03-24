@@ -1,6 +1,5 @@
 import pandas as pd
 import pyarrow
-
 from util.file_reader import do_everything
 
 def main():

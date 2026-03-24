@@ -17,14 +17,46 @@
 # def get_exception():
 #     raise HTTPException(status_code=404, detail="Not found")
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter, HTTPException
 from pathlib import Path
 
 from util.file_reader import do_everything, load_data
 
-app = FastAPI()
+# router responsibly for querys about sales like money made
+salesRouter = APIRouter(
+    prefix="/sales",
+    tags=["sales"]
+)
 
-#DATA_FOLDER = Path(__file__).resolve().parent.parent / "data"
+productRouter = APIRouter(
+    prefix="/products",
+    tags=["products"]
+)
+
+customerRouter = APIRouter(
+    prefix="/customers",
+    tags=["customers"]
+)
+
+@salesRouter.get("/")
+def get_sales_root():
+    pass
+
+@salesRouter.get("/total")
+def get_sales_total():
+    """
+    Get the total amount of sales
+    """
+    pass
+
+@salesRouter.get("/{product_id}")
+def get_sales_product(product_id: str):
+    """
+    Get the sales from a single product
+    """
+    pass
+
+app = FastAPI()
 
 
 @app.get("/")
