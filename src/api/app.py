@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from pathlib import Path
 
 from util.file_reader import do_everything, load_data
+from services.gc_bigquery import create_dataset
 
 app = FastAPI()
 
@@ -54,6 +55,7 @@ def post_root():
 
     # convert to parquet file
     df.to_parquet("new_data/file.parquet", engine = 'pyarrow')
+    
 
     #returns list of files"""
     
