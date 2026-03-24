@@ -1,5 +1,6 @@
 import pandas as pd
 import pyarrow as pa
+from pathlib import Path
 
 def load_data(filepath):
     """
@@ -36,14 +37,13 @@ def validate(df, chunk_size=100_000):
         # Convert date
         chunk['Date'] = pd.to_datetime(
             chunk['Date'],
-            format="%Y-%m-%dT%H:%M:%S.%f",
+            format="%Y-%m-%d",
             errors='coerce'
         )
-
         # Build validation mask
         valid_mask = (
             (chunk['TransactionID'] > 0) &
-            (chunk[number_cols[1:]] >= 0).all(axis=1) &  # all numeric >= 0
+            (chunk[number_cols[1:]] >= 0).all(axis=1) & # all numeric >= 0
             (chunk['Date'].notna())  # valid datetime
         )
 
@@ -58,14 +58,48 @@ def validate(df, chunk_size=100_000):
 def clean(df):
     # drop null
     df.dropna()
-
+    df["Date"] = pd.to_datetime(df["Date"])
     # drop duplicates
-    df.drop_duplicates
+    df.drop_duplicates(inplace=True)
 
     return df
 
-def do_everything(filepath):
-    df = load_data(filepath)
-    valid, invalid = validate(df, 100000) # type: ignore
-    clean(valid)
-    return valid, invalid
+
+def create_parquet(filename, df):
+    """
+    Turn the given Dataframe object into a parquet file, then load them into new_data folder
+    """
+    path = Path(__file__).resolve().parent.parent.parent / 'new_data'
+    df.to_parquet(path / f"{filename}.parquet", engine = "pyarrow")
+
+def do_everything():
+    
+    data_folder = Path(__file__).resolve().parent.parent.parent / "data"
+    files = [f for f in data_folder.iterdir() if f.is_file() and (f.name.endswith(".csv"))]
+    megaDf = pd.DataFrame()
+    megaInvalid = pd.DataFrame()
+
+    for file in files:
+        df = load_data(file)
+        valid, invalid = validate(df, 25000) # type: ignore        
+        megaDf = pd.concat([megaDf, valid])
+        megaInvalid = pd.concat([megaInvalid, invalid])
+
+    monthDict = {
+        "January": [],
+        "Febraury": [],
+        "March": [],
+        "April": [],
+        "May": [],
+        "June": [],
+        "July": [],
+        "August": [],
+        "September": [],
+        "October": [],
+        "November": [],
+        "December": []
+    }
+
+    for i, month in enumerate(monthDict):
+        monthDict[month] = megaDf[megaDf["Date"].dt.month == i + 1]
+        create_parquet(month, monthDict[month])
