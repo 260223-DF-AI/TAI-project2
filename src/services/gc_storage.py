@@ -1,8 +1,10 @@
 from http.client import HTTPException
+from typing import Any
 from google.cloud import storage
 from google.cloud.exceptions import Conflict
 from decorators import logger, app_logger
 from env_vars import project_id
+import crc32c
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
@@ -45,11 +47,30 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
             return blob
     return None
 
+@app_logger
+def crc_hash_exists(bucket: storage.Bucket, filepath: str):
+    with open(filepath, 'rb') as file:
+        crc_to_check = crc32c.crc32c(file.read())
+        for blob in bucket.list_blobs():
+            blob: storage.Blob
+            if(blob.crc32c == crc_to_check):
+                return True
+    return False
+
 # We can change our design approach for this method later
 @app_logger
-def add_to_storage(input_data_path):
-
-    # get/set the bucket
+def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str, Any]):
+    """
+    Args:
+        input_data_path: the path on your system to the data you want t upload
+        partitions: the file/folder structure. Please make sure to have the elements in the order you want 
+        them to appear in the 
+        ie {
+        'year': 2025,
+        'month': 3
+        }
+    """
+    # get/initialize the bucket
     bucket_name = input("Enter the name of your desired bucket: ")
     bucket = check_bucket_existence(bucket_name)
     if(bucket is None):
@@ -64,24 +85,31 @@ def add_to_storage(input_data_path):
             logger.exception(e)
             raise
 
-    # get/set the blob from bucket
-    blob_name = input("Enter the name of the blob to store your data: ")
-    blob = check_blob_existence(bucket, blob_name)
-    if(blob is None):
-        # probably need a try catch here
-        blob = bucket.blob(blob_name) 
-    
-    # need to make this, especially the chunk_size more dynamic in the future
-    # need checksum eventually
-    # Stream buffer to cap RAM usage it is allowed
-    try:
-        blob.upload_from_filename(input_data_path, checksum='crc32c')
-    except HTTPException:
-        logger.error("Change message later")
-        raise
-    except Exception as e:
-        logger.exception(e)
-        raise
+    # check checksum
+    if not crc_hash_exists(bucket, input_data_path):
+        
+        # construct the name/folder hierarchy of the blob
+        blob_name = main_folder + '/'
+        file_name = input("Enter desired blob file name: ")
+        for elem in partitions.items():
+            blob_name += f"{elem[0]}={elem[1]}/"
+        blob_name += file_name
+
+        # get/initialize the blob
+        blob = check_blob_existence(bucket, blob_name)
+        if(blob is None):
+            # probably need a try catch here
+            blob = bucket.blob(blob_name) 
+        
+        # Try to upload data to blob
+        try:
+            blob.upload_from_filename(input_data_path, checksum='crc32c')
+        except HTTPException:
+            logger.error("Change message later")
+            raise
+        except Exception as e:
+            logger.exception(e)
+            raise
 
 @app_logger
 def delete_blob(bucket: storage.Bucket, blob_name: str):

@@ -22,3 +22,9 @@ def app_logger(func):
             logger.error(f"[{func.__name__}] Failed with {type(e).__name__}: {e}")
             raise
     return storage_wrapper
+
+def audit_logger(func):
+    @wraps(func)
+    def audit_wrapper(*args, **kwargs):
+        pass
+    return audit_wrapper
