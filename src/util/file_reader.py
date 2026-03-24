@@ -60,7 +60,7 @@ def clean(df):
     df.dropna()
     df["Date"] = pd.to_datetime(df["Date"])
     # drop duplicates
-    df.drop_duplicates
+    df.drop_duplicates(inplace=True)
 
     return df
 

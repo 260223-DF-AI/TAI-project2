@@ -21,6 +21,7 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from pathlib import Path
 
 from util.file_reader import do_everything, load_data
+from services.gc_bigquery import create_dataset
 
 # router responsibly for querys about sales like money made
 salesRouter = APIRouter(
@@ -86,6 +87,7 @@ def post_root():
 
     # convert to parquet file
     df.to_parquet("new_data/file.parquet", engine = 'pyarrow')
+    
 
     #returns list of files"""
     
