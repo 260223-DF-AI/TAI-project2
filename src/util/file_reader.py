@@ -69,24 +69,22 @@ def create_parquet(filename, df):
     """
     Turn the given Dataframe object into a parquet file, then load them into new_data folder
     """
-    df.to_parquet(f"new_data/{filename}.parquet", engine = "pyarrow")
+    path = Path(__file__).resolve().parent.parent.parent / 'new_data'
+    df.to_parquet(path / f"{filename}.parquet", engine = "pyarrow")
 
-def do_everything(filepath):
+def do_everything():
+    
     data_folder = Path(__file__).resolve().parent.parent.parent / "data"
     files = [f for f in data_folder.iterdir() if f.is_file() and (f.name.endswith(".csv"))]
     megaDf = pd.DataFrame()
+    megaInvalid = pd.DataFrame()
+
     for file in files:
         df = load_data(file)
-        valid, invalid = validate(df, 25000) # type: ignore
-
-        clean(valid)
-        print("---------------VALID-----------------")
-        print(valid.shape)
-        print("-------------INVALID-----------------")
-        print(invalid.shape)
-        
+        valid, invalid = validate(df, 25000) # type: ignore        
         megaDf = pd.concat([megaDf, valid])
-    print(megaDf.shape)
+        megaInvalid = pd.concat([megaInvalid, invalid])
+
     monthDict = {
         "January": [],
         "Febraury": [],
@@ -104,8 +102,4 @@ def do_everything(filepath):
 
     for i, month in enumerate(monthDict):
         monthDict[month] = megaDf[megaDf["Date"].dt.month == i + 1]
-        print(monthDict[month].shape)
-
-    # return valid, invalid
-
-do_everything("placeholder")
+        create_parquet(month, monthDict[month])
