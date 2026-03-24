@@ -207,4 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 # new-data
-new_data/file.parquet
+.new_data/file.parquet
+
+
