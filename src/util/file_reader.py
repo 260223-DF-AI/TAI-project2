@@ -60,7 +60,7 @@ def clean(df):
     df.dropna()
 
     # drop duplicates
-    df.drop_duplicates
+    df.drop_duplicates(inplace=True)
 
     return df
 
