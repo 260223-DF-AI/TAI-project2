@@ -1,10 +1,12 @@
+import base64
 from http.client import HTTPException
 from typing import Any
 from google.cloud import storage
 from google.cloud.exceptions import Conflict
-from decorators import logger, app_logger
-from env_vars import project_id
+from services.decorators import logger, app_logger
+from services.env_vars import project_id
 import crc32c
+import os
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
@@ -50,7 +52,7 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
 @app_logger
 def crc_hash_exists(bucket: storage.Bucket, filepath: str):
     with open(filepath, 'rb') as file:
-        crc_to_check = crc32c.crc32c(file.read())
+        crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4, "big")).decode("utf-8")
         for blob in bucket.list_blobs():
             blob: storage.Blob
             if(blob.crc32c == crc_to_check):
@@ -71,7 +73,7 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         }
     """
     # get/initialize the bucket
-    bucket_name = input("Enter the name of your desired bucket: ")
+    bucket_name = "tai-project2-bucket"
     bucket = check_bucket_existence(bucket_name)
     if(bucket is None):
         try:
@@ -90,7 +92,8 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
-        file_name = input("Enter desired blob file name: ")
+        file_name = os.path.splitext(os.path.basename(input_data_path))[0] + ".parquet"
+        # file_name = input_data_path[input_data_path.rfind('/') + 1: input_data_path.rfind('.')]
         for elem in partitions.items():
             blob_name += f"{elem[0]}={elem[1]}/"
         blob_name += file_name

@@ -1,6 +1,6 @@
 from google.cloud import bigquery
-from decorators import logger, app_logger
-from env_vars import project_id
+from services.decorators import logger, app_logger
+from services.env_vars import project_id
 from google.api_core.exceptions import GoogleAPIError, BadRequest, NotFound, Forbidden
 import os
 from re import match
@@ -42,7 +42,7 @@ def create_table(dataset_name: str, table_name: str):
         
         hive_options = bigquery.HivePartitioningOptions()
         hive_options.source_uri_prefix = f"gs://tai-project2-bucket/sales_data/"
-        hive_options.mode = "STRATEGIC"
+        hive_options.mode = "AUTO"
         ext_config.hive_partitioning_options = hive_options
 
         table = bigquery.Table(table_id)
@@ -88,5 +88,5 @@ def verify_table_exists(dataset_id: str, table_id: str):
 
 # create_dataset(f'{project_id}.tai_cloud_project_dataset')
 # check_dataset_existence(f'{project_id}.tai_cloud_project_dataset')
-create_table('tai_cloud_project_dataset', 'transactions')
-verify_table_exists('tai_cloud_project_dataset', 'transactions')
+# create_table('tai_cloud_project_dataset', 'transactions')
+# verify_table_exists('tai_cloud_project_dataset', 'transactions')
