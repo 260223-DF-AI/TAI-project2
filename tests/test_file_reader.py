@@ -2,7 +2,7 @@ import pandas as pd
 import pytest as pyt
 from pathlib import Path
 
-from src.util.file_reader import load_data, validate, clean
+from src.util.file_reader import load_data, validate, clean, create_parquet
 
 # Get the directory where this specific test file lives
 BASE_DIR = Path(__file__).resolve().parent
@@ -36,6 +36,16 @@ def test_load_data():
     assert list(df.columns) == columns
     assert list(test.columns) == columns
 
+def test_clean():
+    # checks for nulls
+    new_file = test.copy()
+    clean(new_file)
+    assert new_file.isnull().sum().sum() == 0
+
+    # checks that it succesfully removed a duplicate
+    duplicate_count = (new_file['TransactionID'] == '11').sum()
+    assert duplicate_count == 1
+
 def test_validate():
     # Arrange
     valid, invalid = validate(test, 10000)
@@ -49,25 +59,16 @@ def test_validate():
     assert valid_df.shape == valid.shape
 
     # checks valid data is all correct type
-    valid["TransactionID"].dtype == "int"
-
     number_cols = [ 
-        'Quantity', 'UnitPrice',
+        'TransactionID', 'Quantity', 'UnitPrice',
         'DiscountPercent', 'TaxAmount', 
         'ShippingCost', 'TotalAmount'
     ]
 
     for field in number_cols:
-        valid[field].dtype in ["int64", "float64"]
+        assert valid[field].dtype in ["int64", "float64"]
 
-
-def test_clean():
-    # checks for nulls
-    new_file = clean(test)
-    assert new_file.isnull().sum().sum() == 0
-
-    # checks that it succesfully removed a duplicate
-    duplicate_count = (new_file['TransactionID'] == '11').sum()
-    assert duplicate_count == 1
-    
-
+def test_create_parquet():
+    df = load_data(DATA_PATH)
+    create_parquet("file", df)
+    assert Path("new_data/file.parquet").is_file()  

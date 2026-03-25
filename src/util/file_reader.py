@@ -17,9 +17,15 @@ def load_data(filepath):
         print("File Note Found") # replace with logger
     return df
 
+def clean(df):
+    # drop null
+    df.dropna()
+    # drop duplicates
+    df.drop_duplicates(inplace=True)
+
 def validate(df, chunk_size=100_000):
     number_cols = [
-        'TransactionID', 'Quantity', 'UnitPrice',
+        'TransactionID','Quantity', 'UnitPrice',
         'DiscountPercent', 'TaxAmount', 'ShippingCost', 'TotalAmount'
     ]
 
@@ -55,15 +61,6 @@ def validate(df, chunk_size=100_000):
 
     return valid_df, invalid_df
 
-def clean(df):
-    # drop null
-    df.dropna()
-    # drop duplicates
-    df.drop_duplicates(inplace=True)
-
-    return df
-
-
 def create_parquet(filename, df):
     """
     Turn the given Dataframe object into a parquet file, then load them into new_data folder
@@ -86,7 +83,7 @@ def do_everything():
 
     monthDict = {
         "January": [],
-        "Febraury": [],
+        "February": [],
         "March": [],
         "April": [],
         "May": [],
