@@ -58,7 +58,6 @@ def validate(df, chunk_size=100_000):
 def clean(df):
     # drop null
     df.dropna()
-    df["Date"] = pd.to_datetime(df["Date"])
     # drop duplicates
     df.drop_duplicates(inplace=True)
 
@@ -69,7 +68,7 @@ def create_parquet(filename, df):
     """
     Turn the given Dataframe object into a parquet file, then load them into new_data folder
     """
-    path = Path(__file__).resolve().parent.parent.parent / 'new_data'
+    path = Path(__file__).resolve().parent.parent.parent / '.new_data'
     df.to_parquet(path / f"{filename}.parquet", engine = "pyarrow")
 
 def do_everything():
