@@ -1,5 +1,5 @@
 from google.cloud import bigquery
-from decorators import logger, app_logger
+from decorators import app_logger, log_to_app
 from env_vars import project_id
 from google.api_core.exceptions import GoogleAPIError, BadRequest
 import os
@@ -8,7 +8,7 @@ from re import match
 query_client: bigquery.Client = bigquery.Client(project=project_id)
 
 # used code from this tutorial: https://docs.cloud.google.com/bigquery/docs/datasets#python
-@app_logger
+@log_to_app
 def create_dataset(dataset_id: str):
     """ Creates a bigquery database with a provided id
         Args:
@@ -19,20 +19,20 @@ def create_dataset(dataset_id: str):
         ds.location = 'US'
         ds = query_client.create_dataset(dataset=ds)
     except ValueError:
-        logger.error("If you have not specified a default project, the dataset_id must also indicate it <project_id>.<dataset_name>")
+        app_logger.error("If you have not specified a default project, the dataset_id must also indicate it <project_id>.<dataset_name>")
         raise
     except BadRequest:
         if(dataset_id):
-            logger.error(f"Dataset_id ({dataset_id}) does not conform to requirements of alphanumeric with the expection of uderscores.")
+            app_logger.error(f"Dataset_id ({dataset_id}) does not conform to requirements of alphanumeric with the expection of uderscores.")
         raise
     except Exception:
-        logger.exception("An exception that I was not aware existed.")
+        app_logger.exception("An exception that I was not aware existed.")
 
-@app_logger
+@log_to_app
 def create_tables():
     pass
 
-@app_logger
+@log_to_app
 def check_dataset_existence(ds_id: str) -> bigquery.Dataset | None:
     """ Checks if a dataset is in the project
         Args:

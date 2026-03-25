@@ -2,23 +2,24 @@ from http.client import HTTPException
 from typing import Any
 from google.cloud import storage
 from google.cloud.exceptions import Conflict
-from decorators import logger, app_logger
+from decorators import app_logger, log_to_app, log_to_audit
 from env_vars import project_id
 import crc32c
+import base64
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
 
-@app_logger
+@log_to_app
 def initialize_sclient():
     try:
         global storage_client
         storage_client = storage.Client(project=project_id)
     except Exception as e:
-        logger.exception(e)
+        app_logger.exception(e)
         raise
 
-@app_logger
+@log_to_app
 def check_bucket_existence(name: str) -> storage.Bucket | None:
     """Tries to find the bucket with the specified name from the project
     Args: 
@@ -32,7 +33,7 @@ def check_bucket_existence(name: str) -> storage.Bucket | None:
             return bucket
     return None
 
-@app_logger
+@log_to_app
 def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob | None:
     """Tries to find if a blob exists in a given/specified bucket
     Args:
@@ -47,28 +48,44 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
             return blob
     return None
 
-@app_logger
+@log_to_app
+@log_to_audit
 def crc_hash_exists(bucket: storage.Bucket, filepath: str):
+    """Checks the hash of the bundle to be uploaded against the hashes of the bundles/blobs in the bucket
+    Args:
+        bucket: storage bucket to check the contents of
+        filepath: the path to the file to be uploaded
+    Return:
+        bool: True if the hash exists and false otherwise
+        hash: The hash of the bundle to be uploaded
+    """
     try:
         with open(filepath, 'rb') as file:
-            crc_to_check = crc32c.crc32c(file.read())
+            crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4,'big')).decode('utf-8')
             for blob in bucket.list_blobs():
                 blob: storage.Blob
                 if(blob.crc32c == crc_to_check):
-                    return True
-        return False
+                    return True, crc_to_check
+            app_logger.info("Tried to redownload or upload the same batch of data")
+            return False, crc_to_check
     except FileNotFoundError:
-        logger.error(f"File from path {filepath} could not be found.")
-    # add some more exceptions
+        app_logger.error(f"File from path {filepath} could not be found.")
+        raise
+    except OSError:
+        app_logger.error("Couldn't open or read from the provided file, make sure the file stores binary data.")
+        raise
+    except Exception as e:
+        app_logger.exception(e)
+        raise
 
 # We can change our design approach for this method later
-@app_logger
+@log_to_app
 def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str, Any]):
     """
     Args:
         input_data_path: the path on your system to the data you want t upload
-        partitions: the file/folder structure. Please make sure to have the elements in the order you want 
-        them to appear in the 
+        partitions: the file/folder structure. Please make sure to have the keys 
+        in the hierarchical order you want for your file structure
         ie {
         'year': 2025,
         'month': 3
@@ -81,16 +98,15 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         try:
             bucket = storage_client.create_bucket(bucket_or_name=bucket_name, project=project_id)
         except Conflict:
-            # log and raise exception
-            logger.error("Bucket name needs to be unique across all gcstorage users and buckets.")
+            app_logger.error("Bucket name needs to be unique across all gcstorage users and buckets.")
             raise
         except Exception as e:
-            # log and raise exception
-            logger.exception(e)
+            app_logger.exception(e)
             raise
 
     # check checksum
-    if not crc_hash_exists(bucket, input_data_path):
+    does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
+    if not does_hash_exist:
         
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
@@ -109,20 +125,24 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         try:
             blob.upload_from_filename(input_data_path, checksum='crc32c')
         except HTTPException:
-            logger.error("Change message later")
+            app_logger.error("Change message later")
             raise
         except Exception as e:
-            logger.exception(e)
+            app_logger.exception(e)
             raise
 
-@app_logger
+@log_to_app
 def delete_blob(bucket: storage.Bucket, blob_name: str):
+    """Deletes a blob by its name from a given bucket"""
+
     blob = check_blob_existence(bucket, blob_name)
     if(blob is not None):
         blob.delete()
 
-@app_logger
+@log_to_app
 def delete_bucket(bucket_name: str):
+    """Deletes a bucket by its name from the project"""
+
     bucket = check_bucket_existence(bucket_name)
     if(bucket is not None):
         bucket.delete(force=True)
