@@ -7,7 +7,7 @@ from env_vars import project_id
 import crc32c
 
 # Don't forget to commment code
-#storage_client: storage.Client = storage.Client(project=project_id)
+storage_client: storage.Client = storage.Client(project=project_id)
 
 @app_logger
 def initialize_sclient():
@@ -71,7 +71,7 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         }
     """
     # get/initialize the bucket
-    bucket_name = input("Enter the name of your desired bucket: ")
+    bucket_name = "tai-project2-bucket"
     bucket = check_bucket_existence(bucket_name)
     if(bucket is None):
         try:
