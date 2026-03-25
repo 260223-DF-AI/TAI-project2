@@ -1,6 +1,6 @@
 from google.cloud import bigquery
-from decorators import app_logger, log_to_app
-from env_vars import project_id
+from services.decorators import app_logger, log_to_app
+from services.env_vars import project_id
 from google.api_core.exceptions import GoogleAPIError, BadRequest, NotFound, Forbidden
 import os
 from re import match
@@ -42,8 +42,8 @@ def create_table(dataset_name: str, table_name: str):
         
         hive_options = bigquery.HivePartitioningOptions()
         hive_options.source_uri_prefix = f"gs://tai-project2-bucket/sales_data/"
-        hive_options.mode = "STRATEGIC"
-        ext_config.hive_partitioning_options = hive_options
+        hive_options.mode = "AUTO"
+        ext_config.hive_partitioning = hive_options
 
         table = bigquery.Table(table_id)
         table.external_data_configuration = ext_config
@@ -82,11 +82,11 @@ def verify_table_exists(dataset_id: str, table_id: str):
         table = query_client.get_table(full_table_path)
         print(f"✅ Success: Table {table.table_id} exists.")
         print(f"Table Type: {table.table_type}") # Should be 'EXTERNAL'
-        print(f"External Source URIs: {table.external_data_configuration.source_uris}")
+        print(f"External Source URIs: {table.external_data_configuration.source_uris}") # type: ignore
     except NotFound:
         print(f"❌ Error: Table {full_table_path} was not found.")
 
 # create_dataset(f'{project_id}.tai_cloud_project_dataset')
 # check_dataset_existence(f'{project_id}.tai_cloud_project_dataset')
-create_table('tai_cloud_project_dataset', 'transactions')
-verify_table_exists('tai_cloud_project_dataset', 'transactions')
+# create_table('tai_cloud_project_dataset', 'transactions')
+# verify_table_exists('tai_cloud_project_dataset', 'transactions')

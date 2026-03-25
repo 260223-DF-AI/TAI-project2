@@ -59,10 +59,11 @@ def log_to_audit(func):
     def audit_wrapper(*args, **kwargs):
         try:
             hash_hit, hash = func(*args, **kwargs)
-            if(not hash_hit):
-                audit_logger.info(f"Upload bundle with hash: {hash}")
-            else:
+            if(hash_hit):
                 audit_logger.info(f"Prevented uploading bundle with hash: {hash}")
+            else:
+                audit_logger.info(f"Attempting to upload bundle with hash: {hash}")
+            return hash_hit, hash
         except Exception as e:
             raise
     return audit_wrapper

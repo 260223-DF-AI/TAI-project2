@@ -1,11 +1,13 @@
+import base64
 from http.client import HTTPException
 from typing import Any
 from google.cloud import storage
 from google.cloud.exceptions import Conflict
-from decorators import app_logger, log_to_app, log_to_audit
-from env_vars import project_id
+from services.decorators import app_logger, audit_logger, log_to_app, log_to_audit
+from services.env_vars import project_id
 import crc32c
-import base64
+from pathlib import Path
+import os
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
@@ -48,9 +50,11 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
             return blob
     return None
 
+
+"""There is a caveate to this"""
 @log_to_app
 @log_to_audit
-def crc_hash_exists(bucket: storage.Bucket, filepath: str):
+def crc_hash_exists(bucket: storage.Bucket, filepath: str | Path):
     """Checks the hash of the bundle to be uploaded against the hashes of the bundles/blobs in the bucket
     Args:
         bucket: storage bucket to check the contents of
@@ -64,9 +68,10 @@ def crc_hash_exists(bucket: storage.Bucket, filepath: str):
             crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4,'big')).decode('utf-8')
             for blob in bucket.list_blobs():
                 blob: storage.Blob
+                print(f"blob hash: {blob.crc32c}")
                 if(blob.crc32c == crc_to_check):
+                    app_logger.info("Tried to redownload or upload the same batch of data")
                     return True, crc_to_check
-            app_logger.info("Tried to redownload or upload the same batch of data")
             return False, crc_to_check
     except FileNotFoundError:
         app_logger.error(f"File from path {filepath} could not be found.")
@@ -80,7 +85,7 @@ def crc_hash_exists(bucket: storage.Bucket, filepath: str):
 
 # We can change our design approach for this method later
 @log_to_app
-def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str, Any]):
+def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: dict[str, Any]):
     """
     Args:
         input_data_path: the path on your system to the data you want t upload
@@ -92,7 +97,7 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         }
     """
     # get/initialize the bucket
-    bucket_name = input("Enter the name of your desired bucket: ")
+    bucket_name = "tai-project2-bucket"
     bucket = check_bucket_existence(bucket_name)
     if(bucket is None):
         try:
@@ -106,11 +111,13 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
 
     # check checksum
     does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
+    print(f"does hash exist: {does_hash_exist}\nhash: {hash}")
     if not does_hash_exist:
         
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
-        file_name = input("Enter desired blob file name: ")
+        file_name = os.path.splitext(os.path.basename(input_data_path))[0] + ".parquet"
+        # file_name = input_data_path[input_data_path.rfind('/') + 1: input_data_path.rfind('.')]
         for elem in partitions.items():
             blob_name += f"{elem[0]}={elem[1]}/"
         blob_name += file_name
@@ -124,8 +131,10 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         # Try to upload data to blob
         try:
             blob.upload_from_filename(input_data_path, checksum='crc32c')
+            audit_logger.info(f"Successfully uploaded bundle with hash: {blob.crc32c}")
         except HTTPException:
             app_logger.error("Change message later")
+            audit_logger.error(f"Failed to upload bundle with hash: {hash}")
             raise
         except Exception as e:
             app_logger.exception(e)
