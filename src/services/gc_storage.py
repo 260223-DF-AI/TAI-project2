@@ -7,7 +7,7 @@ from env_vars import project_id
 import crc32c
 
 # Don't forget to commment code
-storage_client: storage.Client = storage.Client(project=project_id)
+#storage_client: storage.Client = storage.Client(project=project_id)
 
 @app_logger
 def initialize_sclient():
