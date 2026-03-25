@@ -23,7 +23,7 @@ import os
 
 from src.util.file_reader import do_everything, load_data
 from services.gc_storage import add_to_storage
-from services.gc_bigquery import create_dataset, create_table
+from services.gc_bigquery import create_dataset, create_table, query_client, get_sales_total_by_store
 from services.env_vars import project_id
 
 # router responsibly for querys about sales like money made
@@ -53,18 +53,24 @@ def get_sales_total():
     """
     pass
 
+@salesRouter.get("/{store_id}")
+def get_sales_total(store_id: str):
+    """
+    Get the highest total from a single store
+    """
+    df = get_sales_total_by_store(store_id)
+    json_compatible_data = df.to_dict(orient="records")
+    return json_compatible_data
+
+
 @salesRouter.get("/{product_id}")
 def get_sales_product(product_id: str):
     """
-    Get the sales from a single product
+    Get the total sales from a single product
     """
     pass
 
 app = FastAPI()
-
-app.include_router(salesRouter)
-app.include_router(productRouter)
-app.include_router(customerRouter)
 
 @app.get("/")
 def get_root():
@@ -118,3 +124,8 @@ def post_root():
         add_to_storage(file, "sales_data", { "year": "2025", "month": month_name_to_number[name]})
     create_dataset(f'{project_id}.tai_cloud_project_dataset')
     create_table('tai_cloud_project_dataset', 'transactions')
+
+
+app.include_router(salesRouter)
+app.include_router(productRouter)
+app.include_router(customerRouter)

@@ -42,7 +42,12 @@ def create_table(dataset_name: str, table_name: str):
         
         hive_options = bigquery.HivePartitioningOptions()
         hive_options.source_uri_prefix = f"gs://tai-project2-bucket/sales_data/"
-        hive_options.mode = "AUTO"
+        hive_options.mode = "CUSTOM"
+        hive_options.fields = [
+            bigquery.SchemaField("year", "INT64"),
+            bigquery.SchemaField("month", "INT64")
+        ]
+
         ext_config.hive_partitioning_options = hive_options
 
         table = bigquery.Table(table_id)
@@ -86,7 +91,18 @@ def verify_table_exists(dataset_id: str, table_id: str):
     except NotFound:
         print(f"❌ Error: Table {full_table_path} was not found.")
 
-# create_dataset(f'{project_id}.tai_cloud_project_dataset')
-# check_dataset_existence(f'{project_id}.tai_cloud_project_dataset')
-# create_table('tai_cloud_project_dataset', 'transactions')
-# verify_table_exists('tai_cloud_project_dataset', 'transactions')
+def get_sales_total_by_store(store_id: str):
+    query = """
+            SELECT SUM(TotalAmount)
+            FROM `tai_cloud_project_dataset.transactions`
+            WHERE StoreID = @str_id
+        """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("str_id", "STRING", store_id),
+        ]
+    )
+
+    df = query_client.query(query, job_config=job_config).to_dataframe()
+    return df
