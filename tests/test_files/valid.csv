@@ -10,3 +10,4 @@ TransactionID,Date,StoreID,StoreLocation,Region,State,CustomerID,CustomerName,Se
 9,2025-02-17,S005,Colfax Denver,West,CO,C001,Alice Smith,Consumer,P104,Ballpoint Multipack,Office Supplies,Pens,10,10.66,0.21,6.74,23.13,114.08
 10,2025-10-19,S003,Belltown Seattle,West,WA,C007,George Costanza,Consumer,P105,Dell Quad display,Electronics,Monitor,3,1204.08,0.18,236.96,25.48,3224.48
 11,2025-10-10,S006,Brickell Miami,South,FL,C007,George Costanza,Consumer,P107,Filing Cabinet 3-Tier,Furniture,Storage,9,93.57,0.16,56.59,28.48,792.46
+11,2025-10-10,S006,Brickell Miami,South,FL,C007,George Costanza,Consumer,P107,Filing Cabinet 3-Tier,Furniture,Storage,9,93.57,0.16,56.59,28.48,792.46
