@@ -7,13 +7,13 @@ from re import match
 
 query_client: bigquery.Client = bigquery.Client(project=project_id)
 
+# used code from this tutorial: https://docs.cloud.google.com/bigquery/docs/datasets#python
 @app_logger
 def create_dataset(dataset_id: str):
     """ Creates a bigquery database with a provided id
         Args:
             dataset_id: the id for the dataset that is in the form of [project_id].[dataset_id]
-        
-        Used code form this tutorial: https://docs.cloud.google.com/bigquery/docs/datasets#python"""
+    """
     try:
         ds = bigquery.Dataset(dataset_id)
         ds.location = 'US'

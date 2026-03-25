@@ -20,7 +20,7 @@ def initialize_sclient():
 
 @app_logger
 def check_bucket_existence(name: str) -> storage.Bucket | None:
-    """ Tries to find the bucket with the specified name from the project
+    """Tries to find the bucket with the specified name from the project
     Args: 
         name: name of the bucket to check
     Returns:
@@ -34,7 +34,7 @@ def check_bucket_existence(name: str) -> storage.Bucket | None:
 
 @app_logger
 def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob | None:
-    """ Tries to find if a blob exists in a given/specified bucket
+    """Tries to find if a blob exists in a given/specified bucket
     Args:
         bucket: the bucket the blob is in
         blob_name: name of the blob to check
@@ -49,13 +49,17 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
 
 @app_logger
 def crc_hash_exists(bucket: storage.Bucket, filepath: str):
-    with open(filepath, 'rb') as file:
-        crc_to_check = crc32c.crc32c(file.read())
-        for blob in bucket.list_blobs():
-            blob: storage.Blob
-            if(blob.crc32c == crc_to_check):
-                return True
-    return False
+    try:
+        with open(filepath, 'rb') as file:
+            crc_to_check = crc32c.crc32c(file.read())
+            for blob in bucket.list_blobs():
+                blob: storage.Blob
+                if(blob.crc32c == crc_to_check):
+                    return True
+        return False
+    except FileNotFoundError:
+        logger.error(f"File from path {filepath} could not be found.")
+    # add some more exceptions
 
 # We can change our design approach for this method later
 @app_logger
