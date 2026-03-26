@@ -3,15 +3,17 @@ from functools import wraps
 from pathlib import Path
 import time
 
+# create logs folder if it doesn't already exist, if it does exist then it doesn't do anything
 Path("logs").mkdir(exist_ok=True)
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 def setup_logger(name: str) -> logging.Logger:
     """Initializes and configures app_logger to be used throughout the application:
     Args:
-        name: Str, Name of the logger
+        name: Str - Name of the logger
     Returns:
-        logger.Logger: A configured logger instance """
+        logger.Logger: A configured logger instance
+    """
 
     # initialize logger
     logger = logging.getLogger(name)
@@ -42,6 +44,11 @@ app_logger = setup_logger('app')
 audit_logger = setup_logger('audit')
 
 def log_to_app(func):
+    """Creates basic logs for the general application with more specific logs being created
+    in the func itself
+    Args:
+        func: The function to create logs for
+    """
     @wraps(func)
     def storage_wrapper(*args, **kwargs):
         app_logger.info(f"[{func.__name__}] Starting execution with args={args}, kwargs={kwargs}")
@@ -55,6 +62,10 @@ def log_to_app(func):
     return storage_wrapper
 
 def log_to_audit(func):
+    """Creates basic logs for the audit file storing the hashes of objects uploaded to GCS
+    Args:
+        func: the function comparing the checksum hashes
+    """
     @wraps(func)
     def audit_wrapper(*args, **kwargs):
         try:
@@ -62,7 +73,7 @@ def log_to_audit(func):
             if(hash_hit):
                 audit_logger.info(f"Prevented uploading bundle with hash: {hash}")
             else:
-                audit_logger.info(f"Attempting to upload bundle with hash: {hash}")
+                audit_logger.info(f"Attempting to upload bundle")
             return hash_hit, hash
         except Exception as e:
             raise

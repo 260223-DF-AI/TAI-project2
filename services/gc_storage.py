@@ -51,7 +51,9 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
     return None
 
 
-"""There is a caveate to this"""
+"""There is a caveate to this, it will calculate a different hash if any part of the file is different than what got 
+uploaded to GCS, even if the only difference if the metadata (which includes timetimes, etc). Basically there are ways
+where files built upon the same data can actually be different files, resulting in differing hashes."""
 @log_to_app
 @log_to_audit
 def crc_hash_exists(bucket: storage.Bucket, filepath: str | Path):
@@ -67,8 +69,8 @@ def crc_hash_exists(bucket: storage.Bucket, filepath: str | Path):
         with open(filepath, 'rb') as file:
             crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4,'big')).decode('utf-8')
             for blob in bucket.list_blobs():
-                blob: storage.Blob
-                print(f"blob hash: {blob.crc32c}")
+                blob: storage.Blob # letting vs code know what object blob is
+                print(f"blob hash: {blob.crc32c}") # get rid of this before Friday
                 if(blob.crc32c == crc_to_check):
                     app_logger.info("Tried to redownload or upload the same batch of data")
                     return True, crc_to_check
@@ -111,9 +113,8 @@ def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: di
 
     # check checksum
     does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
-    print(f"does hash exist: {does_hash_exist}\nhash: {hash}")
+    print(f"does hash exist: {does_hash_exist}\nhash: {hash}") # get rid of this before Friday
     if not does_hash_exist:
-        
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
         file_name = os.path.splitext(os.path.basename(input_data_path))[0] + ".parquet"
@@ -131,10 +132,10 @@ def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: di
         # Try to upload data to blob
         try:
             blob.upload_from_filename(input_data_path, checksum='crc32c')
-            audit_logger.info(f"Successfully uploaded bundle with hash: {blob.crc32c}")
+            audit_logger.info(f"Uploaded bundle with hash: {blob.crc32c}")
         except HTTPException:
             app_logger.error("Change message later")
-            audit_logger.error(f"Failed to upload bundle with hash: {hash}")
+            audit_logger.error(f"Failed to upload bundle")
             raise
         except Exception as e:
             app_logger.exception(e)
