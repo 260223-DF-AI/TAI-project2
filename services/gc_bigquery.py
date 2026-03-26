@@ -46,6 +46,7 @@ def create_table(dataset_name: str, table_name: str):
         hive_options.fields = [
             bigquery.SchemaField("year", "INT64"),
             bigquery.SchemaField("month", "INT64")
+        ]
 
         ext_config.hive_partitioning = hive_options
           
