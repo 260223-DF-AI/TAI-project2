@@ -78,3 +78,10 @@ def log_to_audit(func):
         except Exception:
             raise Exception
     return audit_wrapper
+
+def timers(func):
+    def timer_wrapper() -> float:
+        start = time.time()
+        func()
+        return time.time() - start
+    return timer_wrapper

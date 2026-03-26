@@ -5,7 +5,7 @@ import os
 
 from src.util.file_reader import do_everything, load_data
 from services.gc_storage import add_to_storage
-from services.gc_bigquery import *
+from services.gc_bigquery import * # type: ignore
 from services.env_vars import project_id
 
 # router responsibly for querys about sales like money made

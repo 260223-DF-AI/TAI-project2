@@ -2,7 +2,10 @@ import os
 from pathlib import Path
 import time
 
+from services.decorators import timers
+from services.gc_bigquery import get_highest_unit_product, sales_total
 from services.gc_storage import initialize_sclient, add_to_storage
+from src.util.file_reader import do_everything
 
 
 def calculate_space_savings(csv_files: list, parquet_files: list):
@@ -56,11 +59,26 @@ def calculate_upload_time(files: list):
 
 if __name__ == "__main__":
     # setup
-    csv_folder = Path(__file__).resolve().parent.parent.parent / "data"
-    parquet_folder = Path(__file__).resolve().parent.parent.parent / ".new_data"
+    csv_folder = Path(__file__).resolve().parent / "data"
+    parquet_folder = Path(__file__).resolve().parent / ".new_data"
 
     csv_files = [f for f in csv_folder.iterdir() if f.is_file() and (f.name.endswith(".csv"))]
     parquet_files = [f for f in parquet_folder.iterdir() if f.is_file() and (f.name.endswith(".parquet"))]
 
+    do_everything()
+
     percent_saved = calculate_space_savings(csv_files, parquet_files)
     empty_bucket_speed, duplicate_speed = calculate_upload_time(parquet_files)
+
+    sales_total_time = timers(sales_total)()
+    highest_prodict_time = timers(get_highest_unit_product)()
+
+    report_dict = {
+        "Disk space savings": percent_saved,
+        "Upload speed to an empty bucket": empty_bucket_speed,
+        "Upload speed, trying to upload duplicate files": duplicate_speed,
+        "Sales_total query time": sales_total_time,
+        "get_highest_unit_product query time": highest_prodict_time
+    }
+
+    print(report_dict)
