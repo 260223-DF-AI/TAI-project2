@@ -1,27 +1,29 @@
+import base64
 from http.client import HTTPException
 from typing import Any
 from google.cloud import storage
 from google.cloud.exceptions import Conflict
-from decorators import logger, app_logger
-from env_vars import project_id
+from services.decorators import app_logger, audit_logger, log_to_app, log_to_audit
+from services.env_vars import project_id
 import crc32c
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+import os
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
 
-@app_logger
+@log_to_app
 def initialize_sclient():
     try:
         global storage_client
         storage_client = storage.Client(project=project_id)
     except Exception as e:
-        logger.exception(e)
+        app_logger.exception(e)
         raise
 
-@app_logger
+@log_to_app
 def check_bucket_existence(name: str) -> storage.Bucket | None:
-    """ Tries to find the bucket with the specified name from the project
+    """Tries to find the bucket with the specified name from the project
     Args: 
         name: name of the bucket to check
     Returns:
@@ -33,9 +35,9 @@ def check_bucket_existence(name: str) -> storage.Bucket | None:
             return bucket
     return None
 
-@app_logger
+@log_to_app
 def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob | None:
-    """ Tries to find if a blob exists in a given/specified bucket
+    """Tries to find if a blob exists in a given/specified bucket
     Args:
         bucket: the bucket the blob is in
         blob_name: name of the blob to check
@@ -48,24 +50,49 @@ def check_blob_existence(bucket: storage.Bucket, blob_name: str) -> storage.Blob
             return blob
     return None
 
-@app_logger
-def crc_hash_exists(bucket: storage.Bucket, filepath: str):
-    with open(filepath, 'rb') as file:
-        crc_to_check = crc32c.crc32c(file.read())
-        for blob in bucket.list_blobs():
-            blob: storage.Blob
-            if(blob.crc32c == crc_to_check):
-                return True
-    return False
+
+"""There is a caveate to this, it will calculate a different hash if any part of the file is different than what got 
+uploaded to GCS, even if the only difference if the metadata (which includes timetimes, etc). Basically there are ways
+where files built upon the same data can actually be different files, resulting in differing hashes."""
+@log_to_app
+@log_to_audit
+def crc_hash_exists(bucket: storage.Bucket, filepath: str | Path):
+    """Checks the hash of the bundle to be uploaded against the hashes of the bundles/blobs in the bucket
+    Args:
+        bucket: storage bucket to check the contents of
+        filepath: the path to the file to be uploaded
+    Return:
+        bool: True if the hash exists and false otherwise
+        hash: The hash of the bundle to be uploaded
+    """
+    try:
+        with open(filepath, 'rb') as file:
+            crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4,'big')).decode('utf-8')
+            for blob in bucket.list_blobs():
+                blob: storage.Blob # letting vs code know what object blob is
+                print(f"blob hash: {blob.crc32c}") # get rid of this before Friday
+                if(blob.crc32c == crc_to_check):
+                    app_logger.info("Tried to redownload or upload the same batch of data")
+                    return True, crc_to_check
+            return False, crc_to_check
+    except FileNotFoundError:
+        app_logger.error(f"File from path {filepath} could not be found.")
+        raise
+    except OSError:
+        app_logger.error("Couldn't open or read from the provided file, make sure the file stores binary data.")
+        raise
+    except Exception as e:
+        app_logger.exception(e)
+        raise
 
 # We can change our design approach for this method later
-@app_logger
-def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str, Any]):
+@log_to_app
+def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: dict[str, Any]):
     """
     Args:
         input_data_path: the path on your system to the data you want t upload
-        partitions: the file/folder structure. Please make sure to have the elements in the order you want 
-        them to appear in the 
+        partitions: the file/folder structure. Please make sure to have the keys 
+        in the hierarchical order you want for your file structure
         ie {
         'year': 2025,
         'month': 3
@@ -78,20 +105,20 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         try:
             bucket = storage_client.create_bucket(bucket_or_name=bucket_name, project=project_id)
         except Conflict:
-            # log and raise exception
-            logger.error("Bucket name needs to be unique across all gcstorage users and buckets.")
+            app_logger.error("Bucket name needs to be unique across all gcstorage users and buckets.")
             raise
         except Exception as e:
-            # log and raise exception
-            logger.exception(e)
+            app_logger.exception(e)
             raise
 
     # check checksum
-    if not crc_hash_exists(bucket, input_data_path):
-        
+    does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
+    print(f"does hash exist: {does_hash_exist}\nhash: {hash}") # get rid of this before Friday
+    if not does_hash_exist:
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
-        file_name = input("Enter desired blob file name: ")
+        file_name = os.path.splitext(os.path.basename(input_data_path))[0] + ".parquet"
+        # file_name = input_data_path[input_data_path.rfind('/') + 1: input_data_path.rfind('.')]
         for elem in partitions.items():
             blob_name += f"{elem[0]}={elem[1]}/"
         blob_name += file_name
@@ -105,21 +132,27 @@ def add_to_storage(input_data_path: str, main_folder: str, partitions: dict[str,
         # Try to upload data to blob
         try:
             blob.upload_from_filename(input_data_path, checksum='crc32c')
+            audit_logger.info(f"Uploaded bundle with hash: {blob.crc32c}")
         except HTTPException:
-            logger.error("Change message later")
+            app_logger.error("Change message later")
+            audit_logger.error(f"Failed to upload bundle")
             raise
         except Exception as e:
-            logger.exception(e)
+            app_logger.exception(e)
             raise
 
-@app_logger
+@log_to_app
 def delete_blob(bucket: storage.Bucket, blob_name: str):
+    """Deletes a blob by its name from a given bucket"""
+
     blob = check_blob_existence(bucket, blob_name)
     if(blob is not None):
         blob.delete()
 
-@app_logger
+@log_to_app
 def delete_bucket(bucket_name: str):
+    """Deletes a bucket by its name from the project"""
+
     bucket = check_bucket_existence(bucket_name)
     if(bucket is not None):
         bucket.delete(force=True)
