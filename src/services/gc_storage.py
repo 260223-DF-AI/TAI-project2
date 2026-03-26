@@ -5,6 +5,7 @@ from google.cloud.exceptions import Conflict
 from decorators import logger, app_logger
 from env_vars import project_id
 import crc32c
+from unittest.mock import MagicMock, patch
 
 # Don't forget to commment code
 storage_client: storage.Client = storage.Client(project=project_id)
