@@ -93,7 +93,7 @@ def verify_table_exists(dataset_id: str, table_id: str):
 
 def get_sales_total_by_store(store_id: str):
     query = """
-            SELECT SUM(TotalAmount)
+            SELECT SUM(TotalAmount) as total_amount
             FROM `tai_cloud_project_dataset.transactions`
             WHERE StoreID = @str_id
         """
@@ -101,6 +101,75 @@ def get_sales_total_by_store(store_id: str):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("str_id", "STRING", store_id),
+        ]
+    )
+    df = query_client.query(query, job_config=job_config).to_dataframe()
+    return df
+
+def sales_total():
+    query = """
+            SELECT SUM(TotalAmount) as total_amount
+            FROM `tai_cloud_project_dataset.transactions`
+        """ 
+    
+    df = query_client.query(query).to_dataframe()
+    return df
+
+def get_sales_total_by_product(product_id: str):
+    query = """
+            SELECT COALESCE(SUM(TotalAmount), 0) AS total_amount
+            FROM `tai_cloud_project_dataset.transactions`
+            WHERE ProductID = @pr_id
+        """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("pr_id", "STRING", product_id),
+        ]
+    )
+
+    df = query_client.query(query, job_config=job_config).to_dataframe()
+    return df
+
+def get_highest_unit_product():
+    query = """
+            SELECT ProductName, COALESCE(SUM(Quantity), 0) AS quantity
+            FROM `tai_cloud_project_dataset.transactions`
+            GROUP BY ProductName ORDER BY quantity DESC
+            LIMIT 1
+        """
+
+    df = query_client.query(query).to_dataframe()
+    return df
+
+def get_highest_unit_product_month(month: int):
+    query = """
+            SELECT ProductName, COALESCE(SUM(Quantity), 0) AS quantity
+            FROM `tai_cloud_project_dataset.transactions`
+            WHERE month = @m GROUP BY ProductName 
+            ORDER BY quantity DESC
+            LIMIT 1
+        """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("m", "INT64", month),
+        ]
+    )
+
+    df = query_client.query(query, job_config=job_config).to_dataframe()
+    return df
+
+def get_customer_summary(customer_id: str):
+    query = """
+            SELECT CustomerName, COUNT(CustomerID) as transaction_count, COALESCE(SUM(TotalAmount), 0) AS total_amount
+            FROM `tai_cloud_project_dataset.transactions`
+            WHERE CustomerID = @cs_id GROUP BY CustomerName
+        """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("cs_id", "STRING", customer_id),
         ]
     )
 
