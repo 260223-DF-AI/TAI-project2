@@ -71,4 +71,6 @@ def test_validate():
 def test_create_parquet():
     df = load_data(DATA_PATH)
     create_parquet("file", df)
-    assert Path("new_data/file.parquet").is_file()  
+    assert Path(".new_data/file.parquet").is_file()  
+    # clean up
+    Path(".new_data/file.parquet").unlink()
