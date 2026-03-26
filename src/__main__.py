@@ -6,7 +6,7 @@ def main():
     print("Begin Loading Data...")
 
     
-    df1, invalid1 = do_everything("data/dummy_sales_batch_1.csv")
+    df1 = load_data("data/dummy_sales_batch_1.csv")
     print(df1)
     """
     df2, invalid2 = do_everything("data/dummy_sales_batch_2.csv")

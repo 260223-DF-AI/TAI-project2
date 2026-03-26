@@ -97,5 +97,5 @@ def do_everything():
     }
 
     for i, month in enumerate(monthDict):
-        monthDict[month] = megaDf[megaDf["Date"].dt.month == i + 1]
+        monthDict[month] = megaDf[megaDf["Date"].dt.month == i + 1] # type: ignore
         create_parquet(month, monthDict[month])
