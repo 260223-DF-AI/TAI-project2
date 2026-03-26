@@ -3,6 +3,7 @@ import pytest as pyt
 import sys
 from pathlib import Path
 from google.cloud import storage
+from unittest.mock import MagicMock, patch
 # -------------------------------
 # Add src/services to sys.path so imports in gc_storage.py work
 # -------------------------------
@@ -17,6 +18,24 @@ import gc_storage as gcs
 def test_initialize_sclient():
     gcs.initialize_sclient()
     assert isinstance(gcs.storage_client, storage.Client)
+
+
+@patch("mymodule.storage_client")
+def test_check_bucket_existence_found(mock_storage_client):
+    # create fake buckets
+    bucket1 = MagicMock()
+    bucket1.name = "bucket-a"
+
+    bucket2 = MagicMock()
+    bucket2.name = "bucket-b"
+
+    # mock list_buckets
+    mock_storage_client.list_buckets.return_value = [bucket1, bucket2]
+
+    result = gcs.check_bucket_existence("bucket-b")
+
+    assert result == bucket2
+
 
 """
 These functions use some of our limited amount of calls on GCP, so beware
