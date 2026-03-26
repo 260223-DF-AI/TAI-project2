@@ -10,7 +10,7 @@ from pathlib import Path
 import os
 
 # Don't forget to commment code
-storage_client: storage.Client = storage.Client(project=project_id)
+storage_client: storage.Client
 
 @log_to_app
 def initialize_sclient():
@@ -20,6 +20,8 @@ def initialize_sclient():
     except Exception as e:
         app_logger.exception(e)
         raise
+
+initialize_sclient()
 
 @log_to_app
 def check_bucket_existence(name: str) -> storage.Bucket | None:
@@ -70,7 +72,6 @@ def crc_hash_exists(bucket: storage.Bucket, filepath: str | Path):
             crc_to_check = base64.b64encode(crc32c.crc32c(file.read()).to_bytes(4,'big')).decode('utf-8')
             for blob in bucket.list_blobs():
                 blob: storage.Blob # letting vs code know what object blob is
-                print(f"blob hash: {blob.crc32c}") # get rid of this before Friday
                 if(blob.crc32c == crc_to_check):
                     app_logger.info("Tried to redownload or upload the same batch of data")
                     return True, crc_to_check
@@ -113,7 +114,7 @@ def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: di
 
     # check checksum
     does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
-    print(f"does hash exist: {does_hash_exist}\nhash: {hash}") # get rid of this before Friday
+
     if not does_hash_exist:
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
@@ -133,12 +134,13 @@ def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: di
         try:
             blob.upload_from_filename(input_data_path, checksum='crc32c')
             audit_logger.info(f"Uploaded bundle with hash: {blob.crc32c}")
-        except HTTPException:
-            app_logger.error("Change message later")
+        except HTTPException as e:
+            app_logger.error(e)
             audit_logger.error(f"Failed to upload bundle")
             raise
         except Exception as e:
             app_logger.exception(e)
+            audit_logger.error(f"Failed to upload bundle")
             raise
 
 @log_to_app

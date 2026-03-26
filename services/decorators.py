@@ -58,7 +58,7 @@ def log_to_app(func):
             return result
         except Exception as e:
             app_logger.error(f"[{func.__name__}] Failed with {type(e).__name__}: {e}")
-            raise
+            raise Exception
     return storage_wrapper
 
 def log_to_audit(func):
@@ -75,6 +75,6 @@ def log_to_audit(func):
             else:
                 audit_logger.info(f"Attempting to upload bundle")
             return hash_hit, hash
-        except Exception as e:
-            raise
+        except Exception:
+            raise Exception
     return audit_wrapper

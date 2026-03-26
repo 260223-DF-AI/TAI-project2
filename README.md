@@ -1,4 +1,7 @@
 # TAI-project2
+## We are team TAI consisting of Tim, Andrew, and Isabelle and this is our Transaction Cloud Storage Project.
+This project is a data processing pipeline utilizing the ETL method to get our data from csv files into a data lake hosted on Google Cloud Storage. Our ETL process involved leveraging Pandas to read our csvs into DataFrames that we validated, cleaned, and then partitioned by year and month into their own frames. From here, they are converted into parquet files and uploaded to a data lake on Google Cloud Storage, checking each file against what is already in the bucket to prevent duplicate uploads. Finally, BigQuery serves as our data warehouse hosting our star schema for time and space efficient querying, enabling insightful analysis.
+These processes are all accessible via our web microservice API.  
 
 
 # Creating Project Service Accounts
