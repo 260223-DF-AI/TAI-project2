@@ -113,7 +113,6 @@ def add_to_storage(input_data_path: str | Path, main_folder: str, partitions: di
 
     # check checksum
     does_hash_exist, hash = crc_hash_exists(bucket, input_data_path)
-    print(f"does hash exist: {does_hash_exist}\nhash: {hash}") # get rid of this before Friday
     if not does_hash_exist:
         # construct the name/folder hierarchy of the blob
         blob_name = main_folder + '/'
