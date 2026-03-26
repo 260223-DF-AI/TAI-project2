@@ -42,10 +42,7 @@ def create_table(dataset_name: str, table_name: str):
         
         hive_options = bigquery.HivePartitioningOptions()
         hive_options.source_uri_prefix = f"gs://tai-project2-bucket/sales_data/"
-        hive_options.mode = "CUSTOM"
-        hive_options.fields = [
-            bigquery.SchemaField("year", "INT64"),
-            bigquery.SchemaField("month", "INT64")
+        hive_options.mode = "AUTO"
 
         ext_config.hive_partitioning = hive_options
           
