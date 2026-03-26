@@ -105,7 +105,7 @@ def post_root():
     Loads csv, Converts csv files to partitioned parquets, Sends parquets to Google Cloud Storage, 
     and creates table and dataset if they don't already exist
     """
-    do_everything()
+    # do_everything()
     data_folder = Path(__file__).resolve().parent.parent.parent / ".new_data"
     files = [f for f in data_folder.iterdir() if f.is_file() and (f.name.endswith(".parquet"))]
     month_name_to_number = {
